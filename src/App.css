@@ -1040,3 +1040,37 @@ cursor:pointer;
   background: #b7b7b7;
   border-radius: 10px;
 }
+
+
+/**********No message image*******/
+
+
+.no-msg-img-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 500px; /* Adjust the height as needed */
+  width: 465px; /* Adjust the width as needed */
+  background-color: #f0f0f0; /* Background color for the container */
+  border-radius: 10px; /* Make it a circle */
+  overflow: hidden; /* Hide overflowing content */
+}
+
+.no-msg {
+  width: 350px; /* Adjust the width of the image */
+  height: 350px; /* Adjust the height of the image */
+  object-fit: cover; /* Maintain aspect ratio and cover the container */
+}
+
+/* Optional: Add some hover effects */
+.no-msg-img-icon:hover {
+  background-color: #e0e0e0; /* Lighter background on hover */
+  cursor: pointer;
+}
+
+.messages .user-profile:hover {
+  background-color: #e0e0e0;
+  cursor: pointer;
+}
+
+/****************************/

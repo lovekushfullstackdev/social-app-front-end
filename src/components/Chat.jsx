@@ -2,34 +2,38 @@ import React, { useEffect, useState } from 'react'
 import { get_users_list } from './../Apis/Apis';
 import profile from './../../src/assets/images/profile-pic-dummy.png';
 import io from 'socket.io-client';
+import no_svg from './../assets/images/head-features.svg'
 const socket = io.connect('http://192.168.5.205:8000/');
 
 function Chat() {
-
+    const [userDetails,setUserDetails]=useState(null);
     const [usersList,setUsersList]=useState([]);
-    const [messages, setMessages] = useState([]);
+    const [messages_, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
-  
+    const [roomId,setRoomId]=useState(null);
+    const [receiverId,setReceiverId]=useState();
+
     useEffect(() => {
-        socket.on('send_message', (msg) => {
-          setMessages([...messages, msg]);
-          console.log("new_msg",msg);
-        });
-        
-        socket.on('send_msg', (msg) => {
-          setMessages([...messages, msg]);
-          console.log("send_msg-->>",msg);
+        let data=localStorage.getItem("userData")
+        if(data){
+            setUserDetails(JSON.parse(data));
+        }
+        socket.on('get_messages', (msgs) => {
+            setMessages(msgs);
         });
     
-        socket.emit("join_room",{room_id:localStorage.getItem("room_id")})
-    
-        // return () => {
-        //   socket.disconnect();
-        // };
-    }, [socket]);
+        socket.on('receive_msg', (data) => {
+            // Create a new array based on the current state    
+            let updatedMessages = [...messages_];
+            // Update the new array with the received message
+            updatedMessages.push(data.message);
+            // Set the state with the updated array
+            setMessages(updatedMessages);
+        });
+    }, [socket, messages_]); 
 
     const sendMessage = (e) => {
-        socket.emit("receive_msg",{room_id:localStorage.getItem("room_id"),msg:inputMessage})
+        socket.emit("send_msg",{room_id:roomId,msg:inputMessage,user_id:userDetails.id,to_user_id:receiverId})
         setInputMessage('');
     };
 
@@ -47,42 +51,64 @@ function Chat() {
     }
 
     const handleImageError=(e)=>{
-        // console.log("imgonError")
         e.target.src=profile;
     }
-    const [activeIndex,setActiveIndex]=useState(0);
+    const [activeIndex,setActiveIndex]=useState(null);
 
-    const activeChat=(index)=>{
-        setActiveIndex(index)
+    const activeChat=(index,to_id)=>{
+        setReceiverId(to_id)
+        let room_id=to_id<userDetails.id ? to_id+""+userDetails.id : userDetails.id+""+to_id;
+        if(room_id==roomId){
+            return ;
+        }else{
+            setRoomId(room_id)
+            socket.emit("join_room",{room_id:room_id,user_id:userDetails.id,to_user_id:to_id})
+            setActiveIndex(index)
+        }
+        console.log("room id",room_id);
     }
 
   return (
     <div className='message-chat'>
         <div className="container chat-dual-sections">
-            <div class="chat-container">
+            <div className="chat-container">
                 <div className="main-heading">Chat</div>
-                <div class="messages">
-                    <div class="message">Hello, how are you?</div>
-                    <div class="message user-message">I'm doing great! How about you?</div>
-                    <div class="message">Hello, how are you?</div>
-                    <div class="message user-message">I'm doing great! How about you?</div>
+                { roomId ? 
+                <>
+                    <div className="messages">
+                        {/* <div className="message">Hello, how are you?</div>
+                        <div className="message user-message">I'm doing great! How about you?</div>
+                        <div className="message">Hello, how are you?</div>
+                        <div className="message user-message">I'm doing great! How about you?</div> */}
+                        {messages_.map((message,index)=>(
+                            <div key={index} className={`message ${message.sender_id==userDetails.id ? 'user-message' : ''}`}>{message.content}</div>
+                        ))}
+                        {!messages_.length && "No messages"}
+                    </div>
+                    <div className="comment-box">
+                        <input 
+                        type="text" 
+                        className="form-control comment-input" 
+                        placeholder="Type your message..." 
+                        value={inputMessage}
+                        onChange={(e)=>setInputMessage(e.target.value)}
+                        />
+                        <button className="comment-button" onClick={(e)=>sendMessage(e)}><i className="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </>
+                :
+                <div className="no-msg-img-icon">
+                    <img src={no_svg} className='no-msg' />
                 </div>
-                <div className="comment-box">
-                    <input 
-                    type="text" 
-                    className="form-control comment-input" 
-                    placeholder="Type your message..." 
-                    // value={newComment}
-                    // onChange={(e)=>setNewComment(e.target.value)}
-                    />
-                    <button className="comment-button" onClick={(e)=>sendMessage(e)}><i className="fa-solid fa-paper-plane"></i></button>
-                </div>
+                }
+
+
             </div>
-            <div class="chat-container">
+            <div className="chat-container">
                 <div className="main-heading">Chat With</div>
-                <div class="messages">
+                <div className="messages">
                     {usersList.map((user,index)=>(
-                        <div onClick={(e)=>activeChat(index)} className={`user-profile ${index==activeIndex?'active':''}`}>
+                        <div onClick={(e)=>activeChat(index,user.id)} className={`user-profile ${index==activeIndex?'active':''}`} key={user.id}>
                             <div className="user-profile-img">
                                 <img 
                                     src={user.profile_pic} 
