@@ -230,7 +230,7 @@ const deletePostComment=async()=>{
             <div className="upload-post">
                 {userData && <div className="post-container">
                     <div className="user-profile">
-                        <img src={userData.profile_pic} alt="User Profile Picture" />
+                        <img src={userData.profile_pic} />
                         <span className="user-name">{userData?.name}</span>
                     </div>
                     <div className="new-post-form">
@@ -251,7 +251,7 @@ const deletePostComment=async()=>{
                 {posts && posts.map((post,index)=>(
                     <div className="post-container" key={index}>
                         <div className="user-profile">
-                            <img src={post.profile_pic} alt="User Profile Picture" />
+                            <img src={post.profile_pic} />
                             <span className="user-name">{post.name}</span>
                             <span className="user-name-2">{getUploadedTime(post.uploaded_at)}</span>
                         </div>
@@ -271,16 +271,11 @@ const deletePostComment=async()=>{
                         </div>
                         <div className="post-actions">
                             <button className="like-button" onClick={(e)=>postLike(post.p_id,index)}>
-                                {/* <i className={`fa-${post.is_like==1 || post.is_like==true?'solid':'regular'} fa-heart`}></i>  */}
                                 <Heart isClick={post.is_like} >Like</Heart>
                             </button>
                             <button className="comment-button" onClick={(e)=>openComment(index,post.p_id)}><i className="fa-regular fa-comment"></i> Comment</button>
                             <button className="share-button"><i className="fa-solid fa-share-from-square"></i> Share</button>
                         </div>
-                        {/* <div className="post-actions">
-                            <button className="comment-button"><i className="fa-regular fa-comment"></i> Comment</button>
-                            <button className="share-button"><i className="fa-solid fa-share-from-square"></i> Share</button>
-                        </div> */}
                       {index==commentIndex && <div className="post-comments">
                         <div className="comments-container">
                             {commentsList.map((comment,ind)=>(
@@ -288,7 +283,7 @@ const deletePostComment=async()=>{
                                 <div className="comment-user">
                                   <div className="dual-action">
                                     <div className="user-profile-pick">
-                                      <img src={comment.profile_pic} alt="User Profile Picture" className='user-profile-pic'/>
+                                      <img src={comment.profile_pic} className='user-profile-pic'/>
                                     </div>
                                     <span className="user-name">
                                     {comment.name}
@@ -332,7 +327,7 @@ const deletePostComment=async()=>{
                 <div className="upload-post upload-modal">
                     {userData && <div className="post-container">
                         <div className="user-profile">
-                            <img src={userData.profile_pic} alt="User Profile Picture" />
+                            <img src={userData.profile_pic} />
                             <span className="user-name">{userData?.name}</span>
                         </div>
                         <div className="new-post-form">

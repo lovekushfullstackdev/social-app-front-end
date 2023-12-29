@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from 'react'
-import { get_users_list } from './../Apis/Apis';
+import React, { useEffect, useRef, useState } from 'react'
+import EmojiPicker from 'emoji-picker-react';
+
+import { get_users_list,get_all_users,create_group } from './../Apis/Apis';
 import profile from './../../src/assets/images/profile-pic-dummy.png';
 import io from 'socket.io-client';
 import no_svg from './../assets/images/head-features.svg'
+import { Link } from 'react-router-dom';
+import Modal from 'react-bootstrap/Modal';
+import Multiselect from 'multiselect-react-dropdown';
+import { toast } from 'react-toastify';
+
 const socket = io.connect('http://192.168.5.205:8000/');
 
 function Chat() {
@@ -12,6 +19,14 @@ function Chat() {
     const [inputMessage, setInputMessage] = useState('');
     const [roomId,setRoomId]=useState(null);
     const [receiverId,setReceiverId]=useState();
+    const [isEmoji,setIsEmoji]=useState(false);
+    const messagesRef = useRef(null);
+    const [isModal,setIsModal]=useState(false)
+    const [addGroup,setGroup]=useState({
+        title:"",
+        users_id:""
+    })
+    const [groupUsers,setGroupUsers]=useState([]);
 
     useEffect(() => {
         let data=localStorage.getItem("userData")
@@ -21,25 +36,75 @@ function Chat() {
         socket.on('get_messages', (msgs) => {
             setMessages(msgs);
         });
-    
         socket.on('receive_msg', (data) => {
-            // Create a new array based on the current state    
+            console.log("data",data);
+            if(roomId==data.room_id){
+            // Create a new array based on the current state
+
             let updatedMessages = [...messages_];
             // Update the new array with the received message
-            updatedMessages.push(data.message);
+            for(let msg of data.message){
+                updatedMessages.push(msg);
+            }    
             // Set the state with the updated array
             setMessages(updatedMessages);
+            }else{
+                getUsersList();
+            }
+
         });
+
+        return () => {
+            socket.off('get_messages');
+            socket.off('receive_msg');
+        };
+
     }, [socket, messages_]); 
 
+    useEffect(() => {
+        if (messagesRef.current) {
+            messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        }
+    }, [messages_]);
+
     const sendMessage = (e) => {
-        socket.emit("send_msg",{room_id:roomId,msg:inputMessage,user_id:userDetails.id,to_user_id:receiverId})
+        e.preventDefault();
+        
+        /**********User should be at top whome u sent msg*********/
+        if(activeIndex!=0){
+            let users=[...usersList];
+            let activeUser=users[activeIndex];
+            users.splice(activeIndex,1);
+            users.unshift(activeUser)
+            setUsersList(users)
+            setActiveIndex(0);
+        }
+
+
+        if(selectedImage){
+            socket.emit("send_msg",{room_id:roomId,msg:inputMessage,isFile:true,file:selectedImage,user_id:userDetails.id,to_user_id:receiverId})
+        }else{
+            socket.emit("send_msg",{room_id:roomId,msg:inputMessage,isFile:false,user_id:userDetails.id,to_user_id:receiverId})
+        }
+        setSelectedImage("")
         setInputMessage('');
+        setIsEmoji(false)
     };
 
     useEffect(()=>{
         getUsersList();
+        getAllUsers();
     },[])
+
+    const getAllUsers=async()=>{
+        let result = await get_all_users();
+        console.log("---",result);
+        if(result.status){
+            setGroupUsers(result.body)
+        }else{
+
+        }
+    }
 
     const getUsersList=async()=>{
         let result = await get_users_list();
@@ -65,9 +130,64 @@ function Chat() {
             socket.emit("join_room",{room_id:room_id,user_id:userDetails.id,to_user_id:to_id})
             setActiveIndex(index)
         }
-        console.log("room id",room_id);
     }
+    const onEmojiClick = (event) => {
+        setInputMessage((prevInputMessage) => {
+            return prevInputMessage+""+event.emoji; // Return the same value to maintain the current state
+        });
+    };
+    const openEmojis=(e)=>{
+        setIsEmoji(!isEmoji)
+    };
 
+   const setMsgValue=(e)=>{
+        setInputMessage(e.target.value)
+    }
+    const [selectedImage,setSelectedImage]=useState(null);
+   const handelImage=(e)=>{
+    let files=e.target.files;
+    if(files.length){
+        let file=files[0];
+        const reader=new FileReader();
+        reader.onload=()=>{
+            setSelectedImage(reader.result)
+        }
+        reader.readAsDataURL(file);
+    }
+   }
+   const clearImage=()=>{
+    setSelectedImage('');
+   }
+
+   const openModal=()=>{
+      setIsModal(true)
+   }
+   const closeModal=()=>{
+      setIsModal(false)
+   }
+   const onSelectUser=(e)=>{
+    setGroup({...addGroup,users_id:e})
+   }
+   const createGroup=async()=>{
+    console.log(addGroup);
+    if(!addGroup.title){
+        toast.error("Please fill each field.")
+        return;
+    }else{
+        let ids=addGroup.users_id.map(item=>item.id).join(',');
+        console.log("ids",ids);
+        let data={
+            title:addGroup.title,
+            ids:ids
+        }
+        let result = await create_group(data);
+        if(result.status){
+            toast.success(result.message)
+        }else{
+            toast.error(result.message)
+        }
+    }
+   }
   return (
     <div className='message-chat'>
         <div className="container chat-dual-sections">
@@ -75,26 +195,53 @@ function Chat() {
                 <div className="main-heading">Chat</div>
                 { roomId ? 
                 <>
-                    <div className="messages">
-                        {/* <div className="message">Hello, how are you?</div>
-                        <div className="message user-message">I'm doing great! How about you?</div>
-                        <div className="message">Hello, how are you?</div>
-                        <div className="message user-message">I'm doing great! How about you?</div> */}
+                    <div className="messages" id="new-mgs" ref={messagesRef}>
                         {messages_.map((message,index)=>(
-                            <div key={index} className={`message ${message.sender_id==userDetails.id ? 'user-message' : ''}`}>{message.content}</div>
+                            <div key={index} className={`message ${message.sender_id==userDetails.id ? 'user-message right-side' : 'left-side'}`}>
+                                
+                                {message.file ? 
+                                    <div className={`recived-img ${message.sender_id==userDetails.id ? 'right-side' : 'left-side'}`} >
+                                        <img src={message.file} alt="Selected" />
+                                    </div>
+                                :
+                                message.content
+                                }
+                            </div>
                         ))}
                         {!messages_.length && "No messages"}
                     </div>
-                    <div className="comment-box">
-                        <input 
-                        type="text" 
-                        className="form-control comment-input" 
-                        placeholder="Type your message..." 
-                        value={inputMessage}
-                        onChange={(e)=>setInputMessage(e.target.value)}
-                        />
-                        <button className="comment-button" onClick={(e)=>sendMessage(e)}><i className="fa-solid fa-paper-plane"></i></button>
-                    </div>
+                    <form className='send-msg-form'>
+                        {selectedImage && (
+                            <div className="image-preview">
+                                <button type="button" className='remove-image' onClick={clearImage}>
+                                    <i className="fa-solid fa-xmark"></i>
+                                </button>
+                                <div className="select-image">
+                                    <img src={selectedImage} alt="Selected" />
+                                </div>
+                            </div>
+                        )}
+                        <div className="comment-box">
+                            <input 
+                                type="text" 
+                                className="form-control comment-input" 
+                                placeholder="Type your message..." 
+                                value={inputMessage}
+                                onChange={(e)=>setMsgValue(e)}
+                            />
+                            <button type='submit' className="comment-button" onClick={(e)=>sendMessage(e)} disabled={!inputMessage.length && (selectedImage ? false : true)}><i className="fa-solid fa-paper-plane"></i></button>
+                            <button type='button' className="comment-button" onClick={openEmojis}><i className="fa-solid fa-face-smile"></i></button>
+                            <input type="file" style={{"display":"none"}} id="file-attachment" onChange={handelImage}/>
+                            <label htmlFor='file-attachment' className="comment-button">
+                                {/* <button type='button' className="comment-button"> */}
+                                    <i className="fa-solid fa-paperclip"></i>
+                                {/* </button> */}
+                            </label>
+                        </div>
+                    </form>
+                    {isEmoji && <div className='send-emojis'>
+                        <EmojiPicker onEmojiClick={onEmojiClick} />
+                    </div>}
                 </>
                 :
                 <div className="no-msg-img-icon">
@@ -107,6 +254,7 @@ function Chat() {
             <div className="chat-container">
                 <div className="main-heading">Chat With</div>
                 <div className="messages">
+                    <div className='create-group'><Link to="javascript:void(0)" onClick={openModal}>Create group</Link></div>
                     {usersList.map((user,index)=>(
                         <div onClick={(e)=>activeChat(index,user.id)} className={`user-profile ${index==activeIndex?'active':''}`} key={user.id}>
                             <div className="user-profile-img">
@@ -116,13 +264,56 @@ function Chat() {
                                     onError={handleImageError}
                                 />
                             </div>
-                            <div className="is-online"></div>
+                            <div className="is-online" style={{backgroundColor:`${user?.is_logged_in ? 'limegreen':'#fb3a26'}`}}></div>
                             <span className="user-name">{user.name}</span>
                         </div>
                     ))}
                 </div>
-
             </div>
+
+            <Modal show={isModal} animation={true} onHide={closeModal}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Create Group</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                <div className="create-group-modal">
+                    <div className="col-md-12 mt-2">
+                        <label htmlFor="group-title" className="form-label">Group Title</label>
+                        <input 
+                            type="text" 
+                            className="form-control" 
+                            id="group-title" 
+                            placeholder="Group Title"
+                            value={addGroup?.title}
+                            onChange={(e)=>setGroup({...addGroup,title:e.target.value})}
+                        />
+                    </div>
+                    <div className="col-md-12 mt-3">
+                        <label htmlFor="AddUsers" className="form-label">Add Users</label>
+                        <Multiselect
+                            options={groupUsers} // Options to display in the dropdown
+                            // selectedValues={this.state.selectedValue} // Preselected value to persist in dropdown
+                            onSelect={(e)=>onSelectUser(e)} // Function will trigger on select event
+                            // onRemove={} // Function will trigger on remove event
+                            displayValue="name" // Property name to display in the dropdown options
+                        />
+
+                    </div>
+
+                    <div className="dual-btns">
+                        <button className='cancel-button' variant="secondary" onClick={closeModal}>
+                            Cancel
+                        </button>
+                        <button className='btn btn-primary' variant="primary" onClick={createGroup}>
+                            Create
+                        </button>
+                    </div>
+
+                </div>
+                                    
+                </Modal.Body>
+            </Modal>
+
         </div>
     </div>
   )

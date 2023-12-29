@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import companyLogo from './../../assets/images/chat-app-logo-icon-vector.jpg'
 import { Chat, Person, Search, Notifications } from '@material-ui/icons'
 import { logout } from '../../Auth/Auth'
-
+import {logout_user} from './../../Apis/Apis';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from 'react-toastify'
 
 
 const Header = () => {
@@ -19,9 +20,14 @@ const Header = () => {
     const closeModal=()=>{
         setIsLogout(false);
     }
-    const logout_=()=>{
-        logout();
-        navigate("/login")
+    const logout_=async()=>{
+        let result = await logout_user();
+        if(result.status){
+          toast.success(result.message)
+          closeModal();
+          logout();
+          navigate("/login")
+        }
     }
 
     const [data,setData]=useState();
@@ -64,15 +70,15 @@ const Header = () => {
             <div className="topbarIcons">
                 <div className="topbarIconItem">
                 <Person/>
-                <span className="topbarIconBadge">1</span>
+                {/* <span className="topbarIconBadge">1</span> */}
                 </div>
                 <Link to="/message-chat" >  <div className="topbarIconItem">
                 <Chat/>
-              <span className="topbarIconBadge">2</span>
+              {/* <span className="topbarIconBadge">2</span> */}
                 </div></Link> 
                 <div className="topbarIconItem">
                 <Notifications/>
-                <span className="topbarIconBadge">3</span>
+                {/* <span className="topbarIconBadge">3</span> */}
                 </div>
             </div>
             <img src={data && data.profile_pic} alt="" className="topbarImg" />

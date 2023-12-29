@@ -933,11 +933,20 @@ element.style {
 .comment-button i.fa-solid.fa-paper-plane {
   font-size: 22px;
 }
-
+i.fa-solid.fa-face-smile {font-size: 22px;}
 .dual-action {
   display: flex;
   width: 90%;
 }
+.send-emojis {
+  position: absolute;
+}
+
+.comment-button:disabled i.fa-solid.fa-paper-plane {
+  color: #b3b3b3 !important;
+  cursor: alias;
+}
+
 /*************/
 
 button.cancel-button {
@@ -1030,7 +1039,7 @@ cursor:pointer;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: limegreen;
+  /* background-color: limegreen; */
   position: absolute;
   top: 5px;
   right: 5px;
@@ -1074,3 +1083,60 @@ cursor:pointer;
 }
 
 /****************************/
+
+/***************Attached image************/
+
+button.remove-image {
+  position: absolute;
+  width: auto;
+  background: transparent;
+  border: none;
+  height: 25px;
+  padding: 5px;
+  right: 5px;
+}
+
+button.remove-image i.fa-solid.fa-xmark{
+  color:#af4378;
+  font-size: 20px;
+}
+
+.select-image img {
+  /* width: 100%; */
+  /* height: auto; */
+  height: 200px;
+  padding: 30px 20px 10px 20px;
+  border-radius: 40px;
+}
+
+.select-image {
+  background: #e5dcdc;
+  border-radius: 20px;
+}
+
+.image-preview {
+  position: relative;
+}
+
+.recived-img img {
+  height: 150px;
+  /* padding: px; */
+  border-radius: 10px;
+}
+
+.left-side {
+  text-align: left;
+}
+
+.right-side {
+  text-align: right;
+}
+
+.create-group {
+  text-align: right;
+  margin: 0 3px 20px 0;
+}
+
+.create-group-modal .dual-btns {
+  margin-top: 12px;
+}

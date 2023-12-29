@@ -163,7 +163,7 @@ export const delete_post_comments=async(comment_id)=>{
     }
 }
 
-/**********get users list********/
+/**********get users list for chat********/
 export const get_users_list=async()=>{
     try{
         let token=localStorage.getItem("token")
@@ -173,6 +173,55 @@ export const get_users_list=async()=>{
         })
         let responseData=await  response.json();
         return responseData;
+    }catch(error){
+
+    }
+}
+
+
+/**********Logout user's account********/
+export const logout_user=async()=>{
+    try{
+        let token=localStorage.getItem("token")
+        let response=await fetch(api_base+"/logout-user",{
+            method:"POST",
+            headers:{'Content-Type':'application/json',Authorization:`Beared ${token}`}
+        })
+        let responseData = await response.json();
+        return responseData;
+    }catch(error){
+
+    }
+}
+
+export const get_all_users=async()=>{
+    try{
+        let token=localStorage.getItem("token")
+        if(token){
+            let response=await fetch(api_base+"/get-all-users",{
+                method:"GET",
+                headers:{'Content-Type':'application/json',Authorization:`Beared ${token}`}
+            })
+            let responseData = await response.json();
+            return responseData;
+        }
+    }catch(error){
+
+    }
+}
+
+export const create_group=async(data)=>{
+    try{
+        let token=localStorage.getItem("token")
+        if(token){
+            let response = await fetch(api_base+"/create-group",{
+                method:"POST",
+                headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+                body:JSON.stringify(data)
+            })
+            let responseData=await response.json();
+            return responseData;
+        }
     }catch(error){
 
     }
