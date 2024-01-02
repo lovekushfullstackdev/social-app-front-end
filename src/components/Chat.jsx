@@ -27,6 +27,7 @@ function Chat() {
         users_id:""
     })
     const [groupUsers,setGroupUsers]=useState([]);
+    const [loader,setLoader]=useState();
 
     useEffect(() => {
         let data=localStorage.getItem("userData")
@@ -98,7 +99,6 @@ function Chat() {
 
     const getAllUsers=async()=>{
         let result = await get_all_users();
-        console.log("---",result);
         if(result.status){
             setGroupUsers(result.body)
         }else{
@@ -169,20 +169,21 @@ function Chat() {
     setGroup({...addGroup,users_id:e})
    }
    const createGroup=async()=>{
-    console.log(addGroup);
     if(!addGroup.title){
         toast.error("Please fill each field.")
         return;
     }else{
-        let ids=addGroup.users_id.map(item=>item.id).join(',');
-        console.log("ids",ids);
+        let ids=addGroup.users_id ?addGroup.users_id.map(item=>item.id).join(','):"";
         let data={
             title:addGroup.title,
             ids:ids
         }
+        setLoader(true)
         let result = await create_group(data);
+        setLoader(false)
         if(result.status){
             toast.success(result.message)
+            closeModal();
         }else{
             toast.error(result.message)
         }
@@ -233,9 +234,7 @@ function Chat() {
                             <button type='button' className="comment-button" onClick={openEmojis}><i className="fa-solid fa-face-smile"></i></button>
                             <input type="file" style={{"display":"none"}} id="file-attachment" onChange={handelImage}/>
                             <label htmlFor='file-attachment' className="comment-button">
-                                {/* <button type='button' className="comment-button"> */}
                                     <i className="fa-solid fa-paperclip"></i>
-                                {/* </button> */}
                             </label>
                         </div>
                     </form>
@@ -289,7 +288,7 @@ function Chat() {
                         />
                     </div>
                     <div className="col-md-12 mt-3">
-                        <label htmlFor="AddUsers" className="form-label">Add Users</label>
+                        <label htmlFor="AddUsers" className="form-label">Add Users (Optional)</label>
                         <Multiselect
                             options={groupUsers} // Options to display in the dropdown
                             // selectedValues={this.state.selectedValue} // Preselected value to persist in dropdown
@@ -299,21 +298,20 @@ function Chat() {
                         />
 
                     </div>
-
                     <div className="dual-btns">
                         <button className='cancel-button' variant="secondary" onClick={closeModal}>
                             Cancel
                         </button>
-                        <button className='btn btn-primary' variant="primary" onClick={createGroup}>
-                            Create
+                        <button className='btn btn-primary' variant="primary" onClick={createGroup} disabled={loader}>
+                            Create 
+                            {loader && <div className="spinner-border" role="status">                           
+                               <span className="sr-only">Loading...</span>
+                            </div>}
                         </button>
                     </div>
-
                 </div>
-                                    
                 </Modal.Body>
             </Modal>
-
         </div>
     </div>
   )
