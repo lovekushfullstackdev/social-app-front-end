@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import EmojiPicker from 'emoji-picker-react';
 
-import { get_users_list,get_all_users,create_group } from './../Apis/Apis';
+import { get_users_list,get_all_users,create_group,get_group_list } from './../Apis/Apis';
 import profile from './../../src/assets/images/profile-pic-dummy.png';
 import io from 'socket.io-client';
 import no_svg from './../assets/images/head-features.svg'
@@ -9,12 +9,14 @@ import { Link } from 'react-router-dom';
 import Modal from 'react-bootstrap/Modal';
 import Multiselect from 'multiselect-react-dropdown';
 import { toast } from 'react-toastify';
+import group_dummy from './../../src/assets/images/dummy-group.jpg'
 
 const socket = io.connect('http://192.168.5.205:8000/');
 
 function Chat() {
     const [userDetails,setUserDetails]=useState(null);
     const [usersList,setUsersList]=useState([]);
+    const [groupList,setGroupList]=useState([]);
     const [messages_, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
     const [roomId,setRoomId]=useState(null);
@@ -28,6 +30,7 @@ function Chat() {
     })
     const [groupUsers,setGroupUsers]=useState([]);
     const [loader,setLoader]=useState();
+    const [activeChatBox,setActiveChatBox]=useState(1)
 
     useEffect(() => {
         let data=localStorage.getItem("userData")
@@ -81,7 +84,6 @@ function Chat() {
             setActiveIndex(0);
         }
 
-
         if(selectedImage){
             socket.emit("send_msg",{room_id:roomId,msg:inputMessage,isFile:true,file:selectedImage,user_id:userDetails.id,to_user_id:receiverId})
         }else{
@@ -95,6 +97,7 @@ function Chat() {
     useEffect(()=>{
         getUsersList();
         getAllUsers();
+        getGroupList();
     },[])
 
     const getAllUsers=async()=>{
@@ -115,17 +118,33 @@ function Chat() {
         }
     }
 
+    const getGroupList=async()=>{
+        let result= await get_group_list();
+        if(result.status){
+            setGroupList(result.body)
+        }
+    }
+
     const handleImageError=(e)=>{
         e.target.src=profile;
     }
     const [activeIndex,setActiveIndex]=useState(null);
 
-    const activeChat=(index,to_id)=>{
+    const activeChat=(index,to_id,isGroup)=>{
         setReceiverId(to_id)
-        let room_id=to_id<userDetails.id ? to_id+""+userDetails.id : userDetails.id+""+to_id;
+
+        let room_id="";
+        if(!isGroup){
+            room_id=to_id<userDetails.id ? to_id+""+userDetails.id : userDetails.id+""+to_id;
+        }else{
+            room_id=to_id; // Room id 
+        } 
         if(room_id==roomId){
             return ;
         }else{
+            if(roomId){
+                socket.emit('leave_room',roomId);
+            }
             setRoomId(room_id)
             socket.emit("join_room",{room_id:room_id,user_id:userDetails.id,to_user_id:to_id})
             setActiveIndex(index)
@@ -183,11 +202,18 @@ function Chat() {
         setLoader(false)
         if(result.status){
             toast.success(result.message)
+            getGroupList();
             closeModal();
         }else{
             toast.error(result.message)
         }
     }
+   }
+
+   const openChatActiveBox=(x)=>{
+    setActiveChatBox(x);
+    setActiveIndex(-1);
+    setRoomId(0);
    }
   return (
     <div className='message-chat'>
@@ -252,22 +278,43 @@ function Chat() {
             </div>
             <div className="chat-container">
                 <div className="main-heading">Chat With</div>
-                <div className="messages">
-                    <div className='create-group'><Link to="javascript:void(0)" onClick={openModal}>Create group</Link></div>
-                    {usersList.map((user,index)=>(
-                        <div onClick={(e)=>activeChat(index,user.id)} className={`user-profile ${index==activeIndex?'active':''}`} key={user.id}>
-                            <div className="user-profile-img">
-                                <img 
-                                    src={user.profile_pic} 
-                                    // alt="User Profile Picture" 
-                                    onError={handleImageError}
-                                />
+                <div className='create-group'><Link to="javascript:void(0)" onClick={openModal}>Create group</Link></div>
+                <div className="chat-container-inner">
+                    <div className="dual-chat-with">
+                        <button className={`btn cht-user ${activeChatBox== 1 ?"active":""}`} onClick={()=>openChatActiveBox(1)} >Users</button>
+                        <button className={`btn cht-group ${activeChatBox== 2 ?"active":""}`} onClick={()=>openChatActiveBox(2)}>Groups</button>
+                    </div>
+                    {activeChatBox ==1 ? <div className="messages">
+                        {usersList.map((user,index)=>(
+                            <div onClick={(e)=>activeChat(index,user.id,false)} className={`user-profile ${index==activeIndex?'active':''}`} key={user.id}>
+                                <div className="user-profile-img">
+                                    <img 
+                                        src={user.profile_pic} 
+                                        // alt="User Profile Picture" 
+                                        onError={handleImageError}
+                                    />
+                                </div>
+                                <div className="is-online" style={{backgroundColor:`${user?.is_logged_in ? 'limegreen':'#fb3a26'}`}}></div>
+                                <span className="user-name">{user.name}</span>
                             </div>
-                            <div className="is-online" style={{backgroundColor:`${user?.is_logged_in ? 'limegreen':'#fb3a26'}`}}></div>
-                            <span className="user-name">{user.name}</span>
-                        </div>
-                    ))}
+                        ))}
+                    </div>:<div className="messages">
+                        {groupList.map((group,index)=>(
+                            <div onClick={(e)=>activeChat(index,group.room_id,true)} className={`user-profile ${index==activeIndex?'active':''}`} key={group.id}>
+                                <div className="user-profile-img">
+                                    <img 
+                                        src={group_dummy} 
+                                        // alt="User Profile Picture" 
+                                        onError={handleImageError}
+                                    />
+                                </div>
+                                <span className="user-name">{group.group_name}</span>
+                            </div>
+                        ))}
+                        { !groupList.length && "No groups found!" }
+                    </div>}
                 </div>
+
             </div>
 
             <Modal show={isModal} animation={true} onHide={closeModal}>

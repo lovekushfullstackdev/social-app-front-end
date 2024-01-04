@@ -1022,6 +1022,19 @@ border-bottom: 1px solid #ddd;
 cursor:pointer;
 }
 
+.dual-chat-with {
+  display: flex;
+}
+
+.dual-chat-with .btn.active {
+  background: #af4378 !important;
+  color: white !important;
+}
+
+.dual-chat-with .btn {
+  background: #7c7679;
+  color: white;
+}
 
 /*********************************/
 

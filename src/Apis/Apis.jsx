@@ -194,6 +194,7 @@ export const logout_user=async()=>{
     }
 }
 
+/**********Users list for group for chat********/
 export const get_all_users=async()=>{
     try{
         let token=localStorage.getItem("token")
@@ -220,6 +221,24 @@ export const create_group=async(data)=>{
                 body:JSON.stringify(data)
             })
             let responseData=await response.json();
+            return responseData;
+        }
+    }catch(error){
+
+    }
+}
+
+
+/**********Users list for group for chat********/
+export const get_group_list=async()=>{
+    try{
+        let token=localStorage.getItem("token")
+        if(token){
+            let response=await fetch(api_base+"/get-group-list",{
+                method:"GET",
+                headers:{'Content-Type':'application/json',Authorization:`Beared ${token}`}
+            })
+            let responseData = await response.json();
             return responseData;
         }
     }catch(error){
